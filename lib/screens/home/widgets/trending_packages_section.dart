@@ -63,10 +63,10 @@ class _TrendingPackagesSectionState extends State<TrendingPackagesSection> {
     _scrollController
         .animateTo(maxScroll, duration: duration, curve: Curves.linear)
         .then((_) {
-      if (mounted && !_userInteracted) {
-        _startAutoScroll();
-      }
-    });
+          if (mounted && !_userInteracted) {
+            _startAutoScroll();
+          }
+        });
   }
 
   void _onUserInteractionStart() {
@@ -94,7 +94,9 @@ class _TrendingPackagesSectionState extends State<TrendingPackagesSection> {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        /// ── Header ──────────────────────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.only(
             left: 15.0,
@@ -108,8 +110,8 @@ class _TrendingPackagesSectionState extends State<TrendingPackagesSection> {
               Text(
                 "Trending Packages",
                 style: GoogleFonts.urbanist(
-                  fontSize: 24, // Larger
-                  fontWeight: FontWeight.w800, // Extra Bold
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
                   color: const Color(0xff0c1c2c),
                 ),
               ),
@@ -136,50 +138,53 @@ class _TrendingPackagesSectionState extends State<TrendingPackagesSection> {
             ],
           ),
         ),
+
+        /// ── List ────────────────────────────────────────────────────────────
+        // ✅ FIX: height increased to 220 to account for tile content + shadow.
+        // TrendingTile has no vertical margin, so all 220px go to the tile.
         SizedBox(
-          height: 210,
+          height: 222,
           child: widget.isLoading
               ? const Center(child: CircularProgressIndicator())
               : widget.trendingPackages.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No trending packages yet. Add some in Profile!',
-                        style: GoogleFonts.urbanist(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    )
-                  : NotificationListener<ScrollNotification>(
-                      onNotification: (notification) {
-                        if (notification is ScrollStartNotification) {
-                          _onUserInteractionStart();
-                        } else if (notification is ScrollEndNotification) {
-                          _onUserInteractionEnd();
-                        }
-                        return false;
-                      },
-                      child: ListView.separated(
-                        controller: _scrollController,
-                        clipBehavior: Clip.none,
-                        physics: const BouncingScrollPhysics(),
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 15.0,
-                        ),
-                        itemCount: widget.trendingPackages.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(width: 10),
-                        itemBuilder: (context, index) {
-                          final package = widget.trendingPackages[index];
-                          return TrendingTile(
-                            title: package['title'] ?? '',
-                            price: package['price'] ?? '',
-                            imageFileName: package['image_filename'] ?? '',
-                          );
-                        },
-                      ),
+              ? Center(
+                  child: Text(
+                    'No trending packages yet. Add some in Profile!',
+                    style: GoogleFonts.urbanist(
+                      fontSize: 14,
+                      color: Colors.grey,
                     ),
+                  ),
+                )
+              : NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    if (notification is ScrollStartNotification) {
+                      _onUserInteractionStart();
+                    } else if (notification is ScrollEndNotification) {
+                      _onUserInteractionEnd();
+                    }
+                    return false;
+                  },
+                  child: ListView.separated(
+                    controller: _scrollController,
+                    clipBehavior: Clip.none,
+                    physics: const BouncingScrollPhysics(),
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                    itemCount: widget.trendingPackages.length,
+                    // ✅ Horizontal gap between tiles (replaces old tile margin)
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(width: 12),
+                    itemBuilder: (context, index) {
+                      final package = widget.trendingPackages[index];
+                      return TrendingTile(
+                        title: package['title'] ?? '',
+                        price: package['price'] ?? '',
+                        imageFileName: package['image_filename'] ?? '',
+                      );
+                    },
+                  ),
+                ),
         ),
       ],
     );

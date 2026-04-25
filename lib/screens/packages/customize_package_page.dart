@@ -117,7 +117,7 @@ class _CustomizePackagePageState extends State<CustomizePackagePage> {
     try {
       for (var categoryId in categoryMap.keys) {
         final response = await Supabase.instance.client
-            .from('vendor_cards')
+            .from('products')
             .select()
             .eq('category_id', categoryId);
 

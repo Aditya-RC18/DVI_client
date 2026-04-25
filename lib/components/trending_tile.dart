@@ -6,6 +6,7 @@ class TrendingTile extends StatelessWidget {
   final String title;
   final String price;
   final String imageFileName;
+
   const TrendingTile({
     super.key,
     required this.title,
@@ -16,191 +17,123 @@ class TrendingTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(top: 4, bottom: 4),
-      width: 260, // Increased from 225
+      width: 210,
+      // ✅ NO vertical margin — parent SizedBox(height: 210) is the constraint.
+      // Horizontal spacing is handled by separatorBuilder in the parent ListView.
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20), // Smoother radius
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color.fromARGB(60, 12, 28, 44),
-            blurRadius: 15,
-            spreadRadius: 1,
-            offset: Offset(0, 6),
-          ),
-          BoxShadow(
-            color: const Color.fromARGB(30, 12, 28, 44),
-            blurRadius: 25,
-            spreadRadius: 2,
-            offset: Offset(0, 10),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
-                ),
-                child: Image.network(
-                  SupabaseConfig.getImageUrl(imageFileName),
-                  height: 110, // Reduced from 130 to prevent overflow
-                  width: 260,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      height: 110,
-                      color: Colors.grey[300],
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    height: 130,
-                    color: Colors.grey[300],
-                    child: Icon(Icons.error),
+          /// IMAGE
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Image.network(
+                SupabaseConfig.getImageUrl(imageFileName),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey[200],
+                  child: const Icon(
+                    Icons.broken_image,
+                    color: Colors.grey,
+                    size: 40,
                   ),
                 ),
-              ),
-              // Gradient overlay for better readability
-              Container(
-                height: 130,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                  ),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.15),
-                    ],
-                  ),
-                ),
-              ),
-              // Trending badge
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Color.fromARGB(255, 212, 175, 55),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.trending_up, size: 14, color: Colors.white),
-                      SizedBox(width: 4),
-                      Text(
-                        'Popular',
-                        style: GoogleFonts.urbanist(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.white, Colors.grey.shade50],
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    color: Colors.grey[100],
+                    child: const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                },
               ),
             ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8.0,
-                vertical: 6.0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.urbanist(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xff0c1c2c),
+          ),
+
+          /// CONTENT
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                /// Title
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.urbanist(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+
+                const SizedBox(height: 4),
+
+                /// Price
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.currency_rupee,
+                      size: 14,
+                      color: Colors.black87,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.currency_rupee,
-                        size: 14,
-                        color: Color.fromARGB(255, 212, 175, 55),
+                    Text(
+                      price,
+                      style: GoogleFonts.urbanist(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.black87,
                       ),
-                      Text(
-                        price,
-                        style: GoogleFonts.urbanist(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Color.fromARGB(255, 212, 175, 55),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 6),
-                  ElevatedButton(
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 8),
+
+                /// Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 34,
+                  child: ElevatedButton(
                     onPressed: () {
                       Navigator.pushNamed(context, '/bookpackage');
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xff0c1c2c),
+                      backgroundColor: const Color(0xFF0c1c2c),
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 7,
-                      ),
+                      elevation: 0,
+                      padding: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      elevation: 2,
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "View Details",
-                          style: GoogleFonts.urbanist(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(Icons.arrow_forward_ios, size: 10),
-                      ],
+                    child: Text(
+                      "View Details",
+                      style: GoogleFonts.urbanist(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
