@@ -5,6 +5,7 @@ import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/validators.dart';
 import '../../components/oauth_button.dart';
+import '../../services/notification_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -56,20 +57,28 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isLoading = true);
       debugPrint('🔑 Launching Google Sign-In...');
       await _authService.signInWithGoogle();
-      debugPrint('🔙 Back from Google Sign-In! Starting 10s session polling...');
-      
-      // Polling fallback for PKCE redirect exchange
-      for (int i = 0; i < 20; i++) { // 10 seconds total (0.5s x 20)
+      debugPrint(
+        '🔙 Back from Google Sign-In! Starting 10s session polling...',
+      );
+
+      for (int i = 0; i < 20; i++) {
         await Future.delayed(const Duration(milliseconds: 500));
         if (!mounted) return;
-        
+
         if (Supabase.instance.client.auth.currentSession != null) {
-          debugPrint('✅ Polling: Session found! Navigating to Home...');
-          Navigator.pushNamedAndRemoveUntil(context, AppConstants.homeRoute, (route) => false);
+          debugPrint('✅ Polling: Session found! Saving FCM token...');
+          await NotificationService().saveFcmToken();
+          if (!mounted) return;
+          debugPrint('🚀 Navigating to Home...');
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppConstants.homeRoute,
+            (route) => false,
+          );
           return;
         }
       }
-      
+
       debugPrint('⚠️ Polling: No session found after 10 seconds.');
       if (mounted) setState(() => _isLoading = false);
     } catch (e) {
@@ -91,16 +100,22 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isLoading = true);
       debugPrint('🔑 Launching Facebook Sign-In...');
       await _authService.signInWithFacebook();
-      debugPrint('🔙 Back from Facebook Sign-In! Starting 10s session polling...');
-      
+      debugPrint(
+        '🔙 Back from Facebook Sign-In! Starting 10s session polling...',
+      );
+
       // Polling fallback
       for (int i = 0; i < 20; i++) {
         await Future.delayed(const Duration(milliseconds: 500));
         if (!mounted) return;
-        
+
         if (Supabase.instance.client.auth.currentSession != null) {
           debugPrint('✅ Polling: Session found! Navigating to Home...');
-          Navigator.pushNamedAndRemoveUntil(context, AppConstants.homeRoute, (route) => false);
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppConstants.homeRoute,
+            (route) => false,
+          );
           return;
         }
       }
@@ -134,7 +149,6 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
       );
 
-      // Save email if remember me is checked
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(AppConstants.rememberMeKey, _rememberMe);
       if (_rememberMe) {
@@ -146,8 +160,10 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.remove(AppConstants.savedEmailKey);
       }
 
+      // Save FCM token after email login
+      await NotificationService().saveFcmToken();
+
       if (mounted) {
-        // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(AppConstants.loginSuccess),
@@ -155,8 +171,6 @@ class _LoginScreenState extends State<LoginScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-
-        // Navigate to home
         Navigator.pushReplacementNamed(context, AppConstants.homeRoute);
       }
     } catch (e) {
@@ -330,9 +344,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             // Divider
                             Row(
                               children: [
-                                Expanded(child: Divider(color: Colors.grey[700])),
+                                Expanded(
+                                  child: Divider(color: Colors.grey[700]),
+                                ),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
                                   child: Text(
                                     'OR',
                                     style: TextStyle(
@@ -341,7 +359,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                                 ),
-                                Expanded(child: Divider(color: Colors.grey[700])),
+                                Expanded(
+                                  child: Divider(color: Colors.grey[700]),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 24),

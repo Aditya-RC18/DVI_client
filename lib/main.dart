@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/supabase_config.dart';
+import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/signup_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
@@ -17,14 +20,17 @@ import 'screens/packages/filter_package_list_screen.dart';
 import 'screens/packages/customize_package_page.dart';
 import 'screens/services/coordination_service_page.dart';
 import 'screens/vendors/vendor_categories_page.dart';
+import 'services/notification_service.dart';
 import 'utils/constants.dart';
 
 void main() async {
-  // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Supabase from .env file
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
+
   await SupabaseConfig.initialize();
+  await NotificationService().initialize();
 
   runApp(const DreamVentzApp());
 }
@@ -42,7 +48,6 @@ class DreamVentzApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.black,
         fontFamily: 'sans-serif',
       ),
-      // Check auth state and navigate accordingly
       home: const AuthWrapper(),
       routes: {
         AppConstants.loginRoute: (context) => const LoginScreen(),
@@ -66,9 +71,6 @@ class DreamVentzApp extends StatelessWidget {
   }
 }
 
-/// Wrapper to check authentication state on app start
-/// Directs to login if not authenticated, home if authenticated
-/// Shows splash screen while checking
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
@@ -106,14 +108,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
       );
 
       if (mounted) {
-        // Handle any case where we have a session and should be on the home page
         if (session != null &&
             (event == AuthChangeEvent.signedIn ||
                 event == AuthChangeEvent.initialSession ||
                 event == AuthChangeEvent.tokenRefreshed)) {
-          debugPrint(
-            '🚀 Auth condition met! Event: $event. Navigating to Home...',
-          );
+          // Save FCM token whenever user signs in
+          NotificationService().saveFcmToken();
+
+          debugPrint('🚀 Navigating to Home...');
           Navigator.pushNamedAndRemoveUntil(
             context,
             AppConstants.homeRoute,
@@ -125,13 +127,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _checkInitialSession() async {
-    // Wait a moment for any existing session to be restored
     await Future.delayed(const Duration(milliseconds: 500));
 
     final session = Supabase.instance.client.auth.currentSession;
     debugPrint(
       '🧐 Initial Session Check: ${session != null ? "Authenticated" : "Not Authenticated"}',
     );
+
+    // Save FCM token if already logged in
+    if (session != null) {
+      await NotificationService().saveFcmToken();
+    }
 
     if (mounted) {
       setState(() => _isChecking = false);
@@ -141,28 +147,23 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   Widget build(BuildContext context) {
     if (_isChecking) {
-      // Show splash screen while checking auth
       return const SplashScreen();
     }
 
-    // Navigate based on auth state
     try {
       if (SupabaseConfig.isAuthenticated) {
-        debugPrint(
-          '🏠 AuthWrapper: User is authenticated, showing MainNavigation',
-        );
+        debugPrint('🏠 User authenticated, showing MainNavigation');
         return const MainNavigation();
       }
     } catch (e) {
       debugPrint('Error checking auth state: $e');
     }
 
-    debugPrint('👋 AuthWrapper: User not authenticated, showing WelcomePage');
+    debugPrint('👋 User not authenticated, showing WelcomePage');
     return const WelcomePage();
   }
 }
 
-/// Splash screen shown while app initializes
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 
@@ -181,15 +182,12 @@ class SplashScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo
               Image.asset('assets/icons/DV.png', width: 150),
               const SizedBox(height: 40),
-              // Loading indicator
               CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.amber[400]!),
               ),
               const SizedBox(height: 24),
-              // App name
               RichText(
                 text: TextSpan(
                   children: [
