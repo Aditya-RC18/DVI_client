@@ -10,11 +10,13 @@ import 'package:dreamventz/screens/vendors/vendor_profile_page.dart';
 class VendorListPage extends StatefulWidget {
   final String categoryName;
   final int categoryId;
+  final String? vendorId;
 
   const VendorListPage({
     super.key,
     required this.categoryName,
     required this.categoryId,
+    this.vendorId,
   });
 
   @override
@@ -82,6 +84,13 @@ class _VendorListPageState extends State<VendorListPage> {
       allVendorCards = await service.getVendorCardsByCategory(
         widget.categoryId,
       );
+
+      // Filter by vendor if coming from notification
+      if (widget.vendorId != null && widget.vendorId!.isNotEmpty) {
+        allVendorCards = allVendorCards
+            .where((card) => card.vendorId == widget.vendorId)
+            .toList();
+      }
 
       // Fetch cities and tags
       availableCities = await service.getUniqueCities(widget.categoryId);

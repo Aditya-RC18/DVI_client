@@ -6,7 +6,8 @@ import 'package:dreamventz/config/supabase_config.dart';
 class OrderService {
   final SupabaseClient _client = SupabaseConfig.client;
 
-  Future<void> createOrder(
+  /// Returns {order_id: String, vendor_ids: List<String>}
+  Future<Map<String, dynamic>> createOrder(
     List<CartDisplayItem> cartItems,
     int totalAmount,
     String paymentId,
@@ -22,20 +23,47 @@ class OrderService {
         'hours': item.hours,
         'unitPrice': item.unitPrice,
         'imageUrl': item.imageUrl,
-        'itemType': item.itemType
-            .toString()
-            .split('.')
-            .last, // 'venue' or 'vendor'
+        'itemType': item.itemType.toString().split('.').last,
       };
     }).toList();
 
-    await _client.from('orderslist').insert({
-      'user_id': userId,
-      'total_amount': totalAmount,
-      'items': itemsJson,
-      'razorpay_payment_id': paymentId,
-      'status': 'Payment Received',
-    });
+    // Insert and get back the generated order id
+    final response = await _client
+        .from('orderslist')
+        .insert({
+          'user_id': userId,
+          'total_amount': totalAmount,
+          'items': itemsJson,
+          'razorpay_payment_id': paymentId,
+          'status': 'Payment Received',
+        })
+        .select('id')
+        .single();
+
+    final orderId = response['id'] as String;
+
+    // Resolve vendor_ids from vendor_card_ids in cart
+    final vendorCardIds = cartItems
+        .where((item) => item.itemType == CartItemType.vendor)
+        .map((item) => item.itemId)
+        .toSet()
+        .toList();
+
+    List<String> vendorIds = [];
+    if (vendorCardIds.isNotEmpty) {
+      final vendorCards = await _client
+          .from('vendor_cards')
+          .select('vendor_id')
+          .inFilter('id', vendorCardIds);
+
+      vendorIds = (vendorCards as List)
+          .map((row) => row['vendor_id']?.toString() ?? '')
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList();
+    }
+
+    return {'order_id': orderId, 'vendor_ids': vendorIds};
   }
 
   Future<List<OrderModel>> fetchActiveOrders() async {

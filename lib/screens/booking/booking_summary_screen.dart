@@ -6,6 +6,7 @@ import 'package:dreamventz/config/supabase_config.dart';
 import 'package:dreamventz/models/cart_item.dart';
 import 'package:dreamventz/services/cart_service.dart';
 import 'package:dreamventz/services/order_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dreamventz/utils/constants.dart';
 
 class BookingSummaryScreen extends StatefulWidget {
@@ -43,37 +44,79 @@ class _BookingSummaryScreenState extends State<BookingSummaryScreen> {
     super.dispose();
   }
 
-  Future<void> _handlePaymentSuccess(PaymentSuccessResponse response) async {
-    if (!mounted) return;
-    setState(() => _isProcessing = false);
-    
-    // Save to DB and clear cart
-    try {
-      final paymentId = response.paymentId ?? 'UNKNOWN';
-      await OrderService().createOrder(widget.cartItems, _finalTotal, paymentId);
-      await CartService().clearCart();
+Future<void> _handlePaymentSuccess(PaymentSuccessResponse response) async {
+  if (!mounted) return;
+  setState(() => _isProcessing = false);
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Payment Successful! Tracking ID: $paymentId'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
-      // Navigate to home to reset stack, ideally user can then to go Orders page
-      Navigator.pushNamedAndRemoveUntil(context, AppConstants.homeRoute, (route) => false);
-    } catch (e) {
-      if (!mounted) return;
-      debugPrint('Error finalizing order: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Payment Successful but order processing failed. Contact support.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+  try {
+    final paymentId = response.paymentId ?? 'UNKNOWN';
+
+    // 1. Create order — now returns order_id + vendor_ids
+    final orderResult = await OrderService().createOrder(
+      widget.cartItems,
+      _finalTotal,
+      paymentId,
+    );
+
+    final orderId = orderResult['order_id'] as String;
+    final vendorIds = List<String>.from(orderResult['vendor_ids'] as List);
+
+    // 2. Notify each vendor — non-fatal if it fails
+    for (final vendorId in vendorIds) {
+      try {
+        await Supabase.instance.client.functions.invoke(
+          'notify-vendor-new-order',
+          body: {
+            'vendor_id': vendorId,
+            'order_id': orderId,
+            'amount': _finalTotal,
+            'payment_id': paymentId,
+            'items': widget.cartItems
+                .where((item) => item.itemType == CartItemType.vendor)
+                .map((item) => {
+                      'name': item.title,
+                      'quantity': item.quantity,
+                      'price': item.unitPrice,
+                    })
+                .toList(),
+          },
+        );
+        debugPrint('✅ Vendor $vendorId notified');
+      } catch (e) {
+        // Order is already saved — just log, don't fail the whole flow
+        debugPrint('⚠️ Failed to notify vendor $vendorId: $e');
+      }
     }
+
+    // 3. Clear cart
+    await CartService().clearCart();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Payment Successful! Tracking ID: $paymentId'),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppConstants.homeRoute,
+      (route) => false,
+    );
+  } catch (e) {
+    if (!mounted) return;
+    debugPrint('Error finalizing order: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Payment successful but order processing failed. Contact support.',
+        ),
+        backgroundColor: Colors.orange,
+      ),
+    );
   }
+}
 
   void _handlePaymentError(PaymentFailureResponse response) {
     if (!mounted) return;

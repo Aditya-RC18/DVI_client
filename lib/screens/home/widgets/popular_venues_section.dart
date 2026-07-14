@@ -42,7 +42,7 @@ class PopularVenuesSection extends StatelessWidget {
       },
       child: Container(
         width: 250,
-        margin: const EdgeInsets.only(right: 16),
+        margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -66,12 +66,12 @@ class PopularVenuesSection extends StatelessWidget {
                   ? Image.network(
                       venue.mainImageUrl!,
                       width: 250,
-                      height: 160,
+                      height: MediaQuery.of(context).size.height * 0.17,
                       fit: BoxFit.cover,
                     )
                   : Container(
                       width: 250,
-                      height: 160,
+                      height: MediaQuery.of(context).size.height * 0.17,
                       color: Colors.grey[200],
                       child: const Icon(
                         Icons.image,
@@ -263,35 +263,35 @@ class PopularVenuesSection extends StatelessWidget {
 
         // Popular Venues Carousel
         SizedBox(
-          height: 280,
+          height: MediaQuery.of(context).size.height * 0.33,
           child: isLoadingVenues
               ? const Center(
                   child: CircularProgressIndicator(color: Color(0xff0c1c2c)),
                 )
               : popularVenues.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No venues available yet',
-                        style: GoogleFonts.urbanist(
-                          fontSize: 16,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      clipBehavior: Clip.none,
-                      physics: const BouncingScrollPhysics(),
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 15.0,
-                        vertical: 10,
-                      ),
-                      itemCount: popularVenues.length,
-                      itemBuilder: (context, index) {
-                        final venue = popularVenues[index];
-                        return _buildPopularVenueCard(context, venue);
-                      },
+              ? Center(
+                  child: Text(
+                    'No venues available yet',
+                    style: GoogleFonts.urbanist(
+                      fontSize: 16,
+                      color: Colors.grey,
                     ),
+                  ),
+                )
+              : ListView.builder(
+                  clipBehavior: Clip.none,
+                  physics: const BouncingScrollPhysics(),
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 15.0,
+                    // removed vertical padding here
+                  ),
+                  itemCount: popularVenues.length,
+                  itemBuilder: (context, index) {
+                    final venue = popularVenues[index];
+                    return _buildPopularVenueCard(context, venue);
+                  },
+                ),
         ),
       ],
     );

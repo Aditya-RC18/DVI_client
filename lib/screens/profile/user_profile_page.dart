@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'package:dreamventz/screens/profile/Help_support_page.dart';
+import 'package:dreamventz/screens/profile/Notifications_page.dart';
+import 'package:dreamventz/screens/profile/Privacy_security_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -558,12 +561,29 @@ class _UserProfilePageState extends State<UserProfilePage> {
               _SectionItem(
                 icon: Icons.notifications_outlined,
                 label: 'Notifications',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NotificationsPage()),
+                ),
               ),
               _SectionItem(
                 icon: Icons.lock_outline,
                 label: 'Privacy & Security',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const PrivacySecurityPage(),
+                  ),
+                ),
               ),
-              _SectionItem(icon: Icons.help_outline, label: 'Help & Support'),
+              _SectionItem(
+                icon: Icons.help_outline,
+                label: 'Help & Support',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HelpSupportPage()),
+                ),
+              ),
               _SectionItem(icon: Icons.info_outline, label: 'About'),
             ],
           ),

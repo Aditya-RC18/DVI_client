@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'package:dreamventz/screens/vendors/vendor_list_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/supabase_config.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
+import 'services/notification_service.dart';
 import 'screens/auth/signup_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
 import 'screens/navigation/main_navigation.dart';
@@ -20,7 +23,6 @@ import 'screens/packages/filter_package_list_screen.dart';
 import 'screens/packages/customize_package_page.dart';
 import 'screens/services/coordination_service_page.dart';
 import 'screens/vendors/vendor_categories_page.dart';
-import 'services/notification_service.dart';
 import 'utils/constants.dart';
 
 void main() async {
@@ -32,7 +34,7 @@ void main() async {
   await SupabaseConfig.initialize();
   await NotificationService().initialize();
 
-  runApp(const DreamVentzApp());
+  runApp(const ProviderScope(child: DreamVentzApp()));
 }
 
 class DreamVentzApp extends StatelessWidget {
@@ -43,6 +45,7 @@ class DreamVentzApp extends StatelessWidget {
     return MaterialApp(
       title: 'DreamVentz',
       debugShowCheckedModeBanner: false,
+      navigatorKey: clientNavigatorKey,
       theme: ThemeData(
         primarySwatch: Colors.amber,
         scaffoldBackgroundColor: Colors.black,
@@ -66,6 +69,16 @@ class DreamVentzApp extends StatelessWidget {
         '/customize_package_page': (context) => const CustomizePackagePage(),
         '/coordination_service_page': (context) =>
             const CoordinationServicePage(),
+        '/vendorlist': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return VendorListPage(
+            categoryName: args['categoryName'] as String,
+            categoryId: args['categoryId'] as int,
+            vendorId: args['vendorId'] as String?,
+          );
+        },
       },
     );
   }
